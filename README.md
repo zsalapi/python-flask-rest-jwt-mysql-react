@@ -1,20 +1,19 @@
-# A (very) basic Flask REST API example using JWT Authentication
-
-This is a simple Python REST API server using Flask and JWT (JSON Web Tokens). It **does not** use a database or other persistent storage, instead it reads its data on startup from `data.json` and provides some simple database functions for data manipulation and queries. All changes are lost on server shutdown.
-
+A (very) basic Flask REST API example using JWT Authentication with MySQL and React frontend
 The JWT authentication supports access and refresh tokens and token revoking by using an in-memory blacklist.
+I wrote from this repo: https://github.com/Toxe/python-flask-rest-jwt
 
-## Dependencies
-
-- Python 3
-- [Poetry](https://python-poetry.org)
-
-## Setup Virtual Environment and install Dependencies
-
-```
-$ poetry install
-$ poetry shell
-```
+#---------------------------------------------------------
+Frontend:
+cd ./frontend
+npm install
+npm start
+#-----------------------------------------------------------
+Backend:
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+flask db-seed
+#----------------------------------------------------------------
 
 ## Configuration
 
@@ -39,11 +38,6 @@ FLASK_ENV=development
     ]
 }
 ```
-
-## Example data
-
-Example user and ship data is stored in `data.json`.
-
 ## Routes
 
 ```

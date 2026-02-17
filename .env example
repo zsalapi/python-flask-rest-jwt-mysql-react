@@ -1,0 +1,14 @@
+# Flask beállítások
+FLASK_APP=main
+FLASK_ENV=development
+
+# Adatbázis beállítások
+# Cseréld le a 'user' és 'password' részeket a saját MySQL adataidra
+DATABASE_URL="mysql+pymysql://user:password@localhost/python_api"
+
+# JWT beállítások
+# Generálhatsz újakat a következő parancsokkal:
+# python -c 'import os; print(os.urandom(16))'
+# python -c 'import os; print(os.urandom(32))'
+SECRET_KEY="b'\xb0\xb3\n\xe1\xeep\'\xdc\x9a\x1bm\xa4\xce\x81\xd5\x9fW^\\xd0h'"
+JWT_SECRET_KEY="b'\\x1c\\x7f~\\xe6\\xb5<P3,9\\x80\\x15nXQEvK\\x11%\\xabF\\x17\\x8fc\\xdc@2\\x91\\xe6'"
