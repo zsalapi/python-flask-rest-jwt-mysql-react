@@ -9,7 +9,7 @@ npm install<br>
 npm start<br>
 #-----------------------------------------------------------<br>
 Backend:<br>
-python3 -m venv env
+python3 -m venv env<br>
 source env/bin/activate<br>
 pip install -r requirements.txt<br>
 flask db-seed<br>
