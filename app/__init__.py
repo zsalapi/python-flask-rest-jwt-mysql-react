@@ -1,73 +1,73 @@
-# Importáljuk a szükséges csomagokat és modulokat.
+# Import necessary packages and modules.
 from flask import Flask
-# A Flask keretrendszer magja.
+# The core of the Flask framework.
 from config import Config
-# A konfigurációs beállításaink (config.py-ból).
+# Our configuration settings (from config.py).
 from flask_jwt_extended import JWTManager
-# A JWT (JSON Web Token) kezeléséhez.
+# For handling JWT (JSON Web Token).
 from flask_cors import CORS
-# A böngészőből érkező kérések engedélyezéséhez (Cross-Origin Resource Sharing).
+# To allow requests from the browser (Cross-Origin Resource Sharing).
 from models import db, TokenBlocklist
-# Az adatbázis modelljeink (models.py-ból).
+# Our database models (from models.py).
 from commands import db_seed
-# Az adatbázis feltöltésére szolgáló parancsunk (commands.py-ból).
+# Our command for seeding the database (from commands.py).
 
 
-# Létrehozunk egy JWTManager példányt, ami a tokenek kezelését végzi.
+# Create a JWTManager instance, which handles token management.
 jwt = JWTManager()
 
 
-# Ez egy speciális "dekorátor" a JWTManager-től.
-# Minden védett végpont hívásakor lefut, hogy ellenőrizze, a kapott token érvényes-e még.
+# This is a special "decorator" from JWTManager.
+# It runs on every call to a protected endpoint to check if the received token is still valid.
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
     """
-    Visszahívó függvény, ami ellenőrzi, hogy egy JWT token vissza lett-e vonva.
-    A kijelentkezéskor a token azonosítóját (jti) eltároljuk az adatbázisban.
-    Ez a függvény megnézi, hogy a bejövő token jti-je szerepel-e a visszavontak listáján.
+    Callback function that checks if a JWT token has been revoked.
+    On logout, the token's identifier (jti) is stored in the database.
+    This function checks if the incoming token's jti is on the revoked list.
     """
-    # Kiolvassuk a token egyedi azonosítóját (jti).
+    # Read the unique identifier (jti) of the token.
     jti = decrypted_token["jti"]
-    # Megkeressük a TokenBlocklist táblában ezt a jti-t.
+    # Look for this jti in the TokenBlocklist table.
     token = TokenBlocklist.query.filter_by(jti=jti).first()
-    # Ha a token létezik a táblában, az azt jelenti, hogy vissza lett vonva (a felhasználó kijelentkezett).
-    # A 'is not None' egy logikai értéket (True/False) ad vissza.
+    # If the token exists in the table, it means it has been revoked (the user has logged out).
+    # 'is not None' returns a boolean value (True/False).
     return token is not None
 
 
-# Ez az "alkalmazás gyár" (application factory) függvény.
-# Azért jó gyakorlat így létrehozni az appot, mert könnyebb tesztelni és több példányt is létrehozni belőle.
+# This is the "application factory" function.
+# It's good practice to create the app this way because it's easier to test and create multiple instances of it.
 def create_app(config_class=Config):
-    # Létrehozzuk a Flask alkalmazás példányát.
+    # Create the Flask application instance.
     app = Flask(__name__)
-    # Betöltjük a konfigurációt a config.py-ban definiált Config osztályból.
+    # Load the configuration from the Config class defined in config.py.
     app.config.from_object(config_class)
-    # Engedélyezzük a CORS-t az alkalmazáson, ami lehetővé teszi,
-    # hogy a frontend (másik "origin", pl. localhost:3000) kéréseket küldhessen a backendnek (localhost:5000).
+    # Enable CORS on the application, which allows
+    # the frontend (another "origin", e.g., localhost:3000) to send requests to the backend (localhost:5000).
     CORS(app)
 
-    # Inicializáljuk az adatbázis-kezelőt (SQLAlchemy) az alkalmazással.
+    # Initialize the database manager (SQLAlchemy) with the application.
     db.init_app(app)
-    # Inicializáljuk a JWT-kezelőt az alkalmazással.
+    # Initialize the JWT manager with the application.
     jwt.init_app(app)
 
-    # Regisztráljuk a parancssori parancsunkat ('flask db-seed').
+    # Register our command-line command ('flask db-seed').
     app.cli.add_command(db_seed)
 
-    # Importáljuk és regisztráljuk a "blueprint"-eket.
-    # A blueprint-ek segítségével logikailag szétválaszthatjuk az alkalmazás részeit (pl. API, authentikáció).
+    # Import and register the "blueprints".
+    # Blueprints help to logically separate parts of the application (e.g., API, authentication).
     from app.api import bp as api_bp
-    # Az 'api_bp'-ben definiált útvonalak a '/api' előtaggal lesznek elérhetők (pl. /api/ships).
+    # The routes defined in 'api_bp' will be accessible with the '/api' prefix (e.g., /api/ships).
     app.register_blueprint(api_bp, url_prefix="/api")
 
     from app.auth import bp as auth_bp
-    # Az 'auth_bp'-ben definiált útvonalak a '/auth' előtaggal lesznek elérhetők (pl. /auth/login).
+    # The routes defined in 'auth_bp' will be accessible with the '/auth' prefix (e.g., /auth/login).
     app.register_blueprint(auth_bp, url_prefix="/auth")
 
-    # Az alkalmazás kontextusán belül létrehozzuk az adatbázis táblákat, ha még nem léteznek.
-    # Ez a 'db.create_all()' parancs végignézi a 'models.py'-ban definiált osztályokat és létrehozza a sémát.
+    # Within the application context, we create the database tables if they don't already exist.
+    # This 'db.create_all()' command goes through the classes defined in 'models.py' and creates the schema.
     with app.app_context():
         db.create_all()
 
-    # Visszaadjuk a beállított alkalmazás példányt.
+    # Return the configured application instance.
     return app

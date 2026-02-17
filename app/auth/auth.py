@@ -1,80 +1,80 @@
-# Importáljuk a szükséges modulokat.
+# Import necessary modules.
 from flask import jsonify, request
 from flask_jwt_extended import (
-    create_access_token, create_refresh_token,  # Tokenek létrehozására szolgáló függvények.
-    jwt_required, jwt_refresh_token_required,  # Dekorátorok a végpontok védelmére.
-    get_jwt_identity, get_raw_jwt  # Segédfüggvények a token adatainak kiolvasásához.
+    create_access_token, create_refresh_token,  # Functions for creating tokens.
+    jwt_required, jwt_refresh_token_required,  # Decorators for protecting endpoints.
+    get_jwt_identity, get_raw_jwt  # Helper functions for reading token data.
 )
-from app.auth import bp  # Az authentikációs blueprint.
-from app.errors import error_response  # Egységes hibakezelő.
-from models import db, User, TokenBlocklist  # Adatbázis modellek.
-from datetime import datetime  # Dátum és idő kezeléséhez.
+from app.auth import bp  # The authentication blueprint.
+from app.errors import error_response  # Uniform error handler.
+from models import db, User, TokenBlocklist  # Database models.
+from datetime import datetime  # For handling date and time.
 
 
-# Bejelentkezési végpont.
+# Login endpoint.
 @bp.route("/login", methods=["POST"])
 def login():
-    # Ellenőrizzük, hogy a kérés JSON formátumú-e.
+    # Check if the request is in JSON format.
     if not request.is_json:
         return error_response(400)
 
-    # Kiolvassuk a JSON adatokat.
+    # Read the JSON data.
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
 
-    # Ellenőrizzük, hogy a felhasználónév és jelszó meg van-e adva.
+    # Check if username and password are provided.
     if not username or not password:
         return error_response(400, "Username or password missing.")
 
-    # Megkeressük a felhasználót a neve alapján az adatbázisban.
+    # Find the user by name in the database.
     user = User.query.filter_by(name=username).first()
 
-    # Ellenőrizzük, hogy a felhasználó létezik-e, és a megadott jelszó helyes-e.
-    # A 'check_password' a hash-elt jelszót hasonlítja össze a kapott jelszóval.
+    # Check if the user exists and the provided password is correct.
+    # 'check_password' compares the hashed password with the received password.
     if not user or not user.check_password(password):
         return error_response(401, "Username or password invalid.")
 
-    # Ha a bejelentkezés sikeres, létrehozunk egy access tokent és egy refresh tokent.
-    # Az 'identity' a token "tulajdonosa", itt a felhasználó ID-ját tároljuk el benne.
+    # If login is successful, create an access token and a refresh token.
+    # The 'identity' is the "owner" of the token, here we store the user's ID in it.
     access_token = create_access_token(identity=user.id)
     refresh_token = create_refresh_token(identity=user.id)
-    # Visszaadjuk a tokeneket a kliensnek.
+    # Return the tokens to the client.
     return jsonify(access_token=access_token, refresh_token=refresh_token)
 
 
-# Végpont az access token frissítésére.
+# Endpoint for refreshing the access token.
 @bp.route("/refresh", methods=["POST"])
-@jwt_refresh_token_required  # Ezt a végpontot csak érvényes REFRESH token-nel lehet elérni.
+@jwt_refresh_token_required  # This endpoint can only be accessed with a valid REFRESH token.
 def refresh():
-    # Kiolvassuk a felhasználó ID-ját a refresh tokenből.
+    # Read the user ID from the refresh token.
     user_id = get_jwt_identity()
-    # Lekérdezzük a felhasználót az adatbázisból.
+    # Query the user from the database.
     user = User.query.get(user_id)
     if not user:
         return error_response(401, "Unknown user.")
-    # Létrehozunk egy új access tokent.
+    # Create a new access token.
     access_token = create_access_token(identity=user.id)
     return jsonify(access_token=access_token)
 
 
-# Végpont a kijelentkezéshez (access token visszavonása).
+# Endpoint for logout (revoking access token).
 @bp.route("/logout", methods=["DELETE"])
-@jwt_required  # Ezt a végpontot csak érvényes ACCESS token-nel lehet elérni.
+@jwt_required  # This endpoint can only be accessed with a valid ACCESS token.
 def logout_access_token():
-    # Kiolvassuk a token egyedi azonosítóját (jti).
+    # Read the unique identifier (jti) of the token.
     jti = get_raw_jwt()["jti"]
-    # Hozzáadjuk a jti-t a 'TokenBlocklist' táblához, jelezve, hogy ez a token érvénytelen.
+    # Add the jti to the 'TokenBlocklist' table, indicating that this token is invalid.
     db.session.add(TokenBlocklist(jti=jti, created_at=datetime.now()))
     db.session.commit()
     return jsonify(message="Successfully logged out.")
 
 
-# Végpont a kijelentkezéshez (refresh token visszavonása).
+# Endpoint for logout (revoking refresh token).
 @bp.route("/logout2", methods=["DELETE"])
-@jwt_refresh_token_required  # Ezt a végpontot csak érvényes REFRESH token-nel lehet elérni.
+@jwt_refresh_token_required  # This endpoint can only be accessed with a valid REFRESH token.
 def logout_refresh_token():
-    # Ugyanaz a logika, mint a logout_access_token-nél, csak refresh tokenre.
+    # Same logic as for logout_access_token, but for the refresh token.
     jti = get_raw_jwt()["jti"]
     db.session.add(TokenBlocklist(jti=jti, created_at=datetime.now()))
     db.session.commit()

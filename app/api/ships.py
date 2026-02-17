@@ -1,49 +1,49 @@
-# Importáljuk a szükséges Flask és Flask-JWT-Extended modulokat.
+# Import necessary Flask and Flask-JWT-Extended modules.
 from flask import jsonify, request, url_for
-# jsonify: Python dict-ből JSON választ készít; request: a bejövő kérés adatai; url_for: URL-t generál egy végponthoz.
-from flask_jwt_extended import jwt_required  # Dekorátor, ami megköveteli az érvényes JWT tokent a végpont eléréséhez.
-from app.api import bp  # A blueprint példányunk, amire a végpontokat regisztráljuk.
-from models import db, Ship  # Az adatbázis kapcsolat és a Ship modell.
-from app.errors import error_response  # Egységes hibakezelő függvény.
+# jsonify: creates a JSON response from a Python dict; request: incoming request data; url_for: generates a URL for an endpoint.
+from flask_jwt_extended import jwt_required  # Decorator that requires a valid JWT token to access the endpoint.
+from app.api import bp  # Our blueprint instance, on which we register the endpoints.
+from models import db, Ship  # The database connection and the Ship model.
+from app.errors import error_response  # Uniform error handler function.
 
 
-# Végpont az összes hajó lekérdezésére.
+# Endpoint to get all ships.
 @bp.route("/ships", methods=["GET"])
 def get_ships():
-    # Lekérdezzük az összes rekordot a 'ships' táblából az SQLAlchemy segítségével.
+    # Query all records from the 'ships' table using SQLAlchemy.
     ships = Ship.query.all()
-    # A kapott 'Ship' objektumok listáját átalakítjuk JSON formátumú listává a 'to_json' metódussal, majd visszaadjuk.
+    # Convert the list of 'Ship' objects received into a JSON formatted list with the 'to_json' method, then return it.
     return jsonify([ship.to_json() for ship in ships])
 
 
-# Végpont egy konkrét hajó lekérdezésére azonosító (ID) alapján.
+# Endpoint to get a specific ship by identifier (ID).
 @bp.route("/ships/<int:id>", methods=["GET"])
 def get_ship(id):
-    # Megkeressük a hajót az ID alapján. A 'get' egy gyors keresés a primary key-re.
+    # Find the ship by ID. 'get' is a quick search for the primary key.
     ship = Ship.query.get(id)
-    # Ha a hajó nem található (a 'get' None-t ad vissza), 404-es hibát küldünk.
+    # If the ship is not found ('get' returns None), we send a 404 error.
     if ship is None:
         return error_response(404)
-    # Ha megvan, visszaadjuk a hajó adatait JSON formátumban.
+    # If found, return the ship's data in JSON format.
     return jsonify(ship.to_json())
 
 
-# Végpont új hajó létrehozására.
+# Endpoint to create a new ship.
 @bp.route("/ships", methods=["POST"])
-@jwt_required  # Csak bejelentkezett felhasználó (érvényes access token-nel) érheti el.
+@jwt_required  # Only an authenticated user (with a valid access token) can access it.
 def create_ship():
-    # Lekérjük a kérés törzséből a JSON adatokat.
+    # Get the JSON data from the request body.
     data = request.get_json()
-    # Ha nincs adat, hibát dobunk.
+    # If there is no data, we throw an error.
     if not data:
-        return error_response(400, "Nincs adat a kérésben.")
+        return error_response(400, "No data in request.")
 
-    # Ellenőrizzük, hogy a kötelező mezők meg lettek-e adva.
+    # Check if the required fields have been provided.
     required_fields = ['model', 'ship_class']
     if not all(field in data for field in required_fields):
-        return error_response(400, f"Hiányzó kötelező mezők: {', '.join(required_fields)}")
+        return error_response(400, f"Missing required fields: {', '.join(required_fields)}")
 
-    # Létrehozunk egy új 'Ship' objektumot a kapott adatokból.
+    # Create a new 'Ship' object from the received data.
     new_ship = Ship(
         affiliation=data.get('affiliation'),
         category=data.get('category'),
@@ -54,37 +54,37 @@ def create_ship():
         roles=data.get('roles'),
         ship_class=data.get('ship_class')
     )
-    # Hozzáadjuk az új objektumot az adatbázis "session"-höz (munkamenethez).
+    # Add the new object to the database "session".
     db.session.add(new_ship)
-    # Véglegesítjük a változtatásokat az adatbázisban.
+    # Commit the changes to the database.
     db.session.commit()
 
-    # Visszaadjuk az újonnan létrehozott hajó adatait JSON-ként.
+    # Return the data of the newly created ship as JSON.
     response = jsonify(new_ship.to_json())
-    # A HTTP státuszkódot 201 Created-re állítjuk, jelezve a sikeres létrehozást.
+    # Set the HTTP status code to 201 Created, indicating successful creation.
     response.status_code = 201
-    # A válasz 'Location' fejlécébe beletesszük az új erőforrás URL-jét.
+    # Add the URL of the new resource to the 'Location' header of the response.
     response.headers["Location"] = url_for("api.get_ship", id=new_ship.id)
     return response
 
 
-# Végpont egy meglévő hajó módosítására.
+# Endpoint to update an existing ship.
 @bp.route("/ships/<int:id>", methods=["PUT"])
-@jwt_required  # Csak bejelentkezett felhasználó érheti el.
+@jwt_required  # Only an authenticated user can access it.
 def update_ship(id):
-    # Megkeressük a módosítandó hajót az ID alapján.
+    # Find the ship to be updated by ID.
     ship = Ship.query.get(id)
-    # Ha nem létezik, 404-es hibát adunk.
+    # If it doesn't exist, we return a 404 error.
     if ship is None:
         return error_response(404)
 
-    # Lekérjük a kérés törzséből a JSON adatokat.
+    # Get the JSON data from the request body.
     data = request.get_json()
     if not data:
-        return error_response(400, "Nincs adat a kérésben.")
+        return error_response(400, "No data in request.")
 
-    # Frissítjük a hajó attribútumait a kapott adatokkal.
-    # A 'data.get(key, default_value)' biztonságosabb, mert ha egy kulcs hiányzik, a meglévő értéket tartja meg.
+    # Update the ship's attributes with the received data.
+    # 'data.get(key, default_value)' is safer because if a key is missing, it keeps the existing value.
     ship.affiliation = data.get('affiliation', ship.affiliation)
     ship.category = data.get('category', ship.category)
     ship.crew = data.get('crew', ship.crew)
@@ -94,24 +94,24 @@ def update_ship(id):
     ship.roles = data.get('roles', ship.roles)
     ship.ship_class = data.get('ship_class', ship.ship_class)
 
-    # Véglegesítjük a változtatásokat az adatbázisban.
+    # Commit the changes to the database.
     db.session.commit()
-    # Visszaadjuk a frissített hajó adatait.
+    # Return the updated ship's data.
     return jsonify(ship.to_json())
 
 
-# Végpont egy hajó törlésére.
+# Endpoint to delete a ship.
 @bp.route("/ships/<int:id>", methods=["DELETE"])
-@jwt_required  # Csak bejelentkezett felhasználó érheti el.
+@jwt_required  # Only an authenticated user can access it.
 def delete_ship(id):
-    # Megkeressük a törlendő hajót az ID alapján.
+    # Find the ship to be deleted by ID.
     ship = Ship.query.get(id)
-    # Ha nem létezik, 404-es hibát adunk.
+    # If it doesn't exist, we return a 404 error.
     if ship is None:
         return error_response(404)
-    # Töröljük az objektumot az adatbázis "session"-ből.
+    # Delete the object from the database "session".
     db.session.delete(ship)
-    # Véglegesítjük a változtatást.
+    # Commit the change.
     db.session.commit()
-    # Sikeres törlés esetén 204 No Content státuszkódot adunk vissza üres válasszal.
+    # On successful deletion, return a 204 No Content status code with an empty response.
     return "", 204

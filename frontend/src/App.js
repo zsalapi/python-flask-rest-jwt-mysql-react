@@ -1,37 +1,37 @@
-// Importáljuk a React-et és a routinghoz szükséges komponenseket a 'react-router-dom'-ból.
+// Import React and the necessary components for routing from 'react-router-dom'.
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-// Importáljuk a különböző oldalainkat (komponenseinket).
+// Import our different pages (components).
 import Login from './components/Login';
 import Register from './components/Register';
 import ShipList from './components/ShipList';
 import ShipForm from './components/ShipForm';
 import Navbar from './components/Navbar';
-// Importáljuk a Bootstrap CSS-t a stílusokhoz.
+// Import Bootstrap CSS for styling.
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-// Ez a fő alkalmazás komponens.
+// This is the main application component.
 function App() {
   return (
-    // A <Router> komponens körbeveszi az egész alkalmazást, lehetővé téve az útvonalválasztást (routing).
+    // The <Router> component wraps the entire application, enabling routing.
     <Router>
-      {/* A Navbar minden oldalon meg fog jelenni, mert a <Routes> felett van. */}
+      {/* The Navbar will appear on every page because it is above <Routes>. */}
       <Navbar />
-      {/* Ez a konténer a Bootstrap-től jön, és szépen középre igazítja a tartalmat. */}
+      {/* This container comes from Bootstrap and nicely centers the content. */}
       <div className="container">
-        {/* A <Routes> komponens felelős a megfelelő oldal (Route) kiválasztásáért az URL alapján. */}
+        {/* The <Routes> component is responsible for selecting the appropriate page (Route) based on the URL. */}
         <Routes>
-          {/* Ha az URL '/login', a <Login> komponenst rendereli. */}
+          {/* If the URL is '/login', it renders the <Login> component. */}
           <Route path="/login" element={<Login />} />
-          {/* Ha az URL '/register', a <Register> komponenst rendereli. */}
+          {/* If the URL is '/register', it renders the <Register> component. */}
           <Route path="/register" element={<Register />} />
-          {/* Ha az URL '/ships', a <ShipList> komponenst rendereli. */}
+          {/* If the URL is '/ships', it renders the <ShipList> component. */}
           <Route path="/ships" element={<ShipList />} />
-          {/* Ha az URL '/ships/new', a <ShipForm> komponenst rendereli új hajó létrehozásához. */}
+          {/* If the URL is '/ships/new', it renders the <ShipForm> component for creating a new ship. */}
           <Route path="/ships/new" element={<ShipForm />} />
-          {/* Ha az URL '/ships/edit/valami', a <ShipForm> komponenst rendereli szerkesztéshez. Az ':id' egy URL paraméter. */}
+          {/* If the URL is '/ships/edit/something', it renders the <ShipForm> component for editing. The ':id' is a URL parameter. */}
           <Route path="/ships/edit/:id" element={<ShipForm />} />
-          {/* Ha az URL a gyökér ('/'), automatikusan átirányít a '/ships' útvonalra. */}
+          {/* If the URL is the root ('/'), it automatically redirects to the '/ships' route. */}
           <Route path="/" element={<Navigate to="/ships" />} />
         </Routes>
       </div>
@@ -39,5 +39,5 @@ function App() {
   );
 }
 
-// Exportáljuk az App komponenst, hogy az index.js használni tudja.
+// Export the App component so that index.js can use it.
 export default App;

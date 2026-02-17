@@ -1,115 +1,115 @@
-# Importáljuk a szükséges Flask és Flask-JWT-Extended modulokat.
+# Import necessary Flask and Flask-JWT-Extended modules.
 from flask import jsonify, request, url_for
-from flask_jwt_extended import jwt_required, get_jwt_identity  # jwt_required: védelem; get_jwt_identity: a tokenből kiolvassa a bejelentkezett user ID-ját.
+from flask_jwt_extended import jwt_required, get_jwt_identity  # jwt_required: protection; get_jwt_identity: reads the logged-in user's ID from the token.
 from app.api import bp
-from models import db, User  # Adatbázis kapcsolat és User modell.
+from models import db, User  # Database connection and User model.
 from app.errors import error_response
 
 
-# Végpont az összes felhasználó lekérdezésére.
+# Endpoint to get all users.
 @bp.route("/users", methods=["GET"])
 def get_users():
-    # Lekérdezzük az összes felhasználót.
+    # Query all users.
     users = User.query.all()
-    # Visszaadjuk a felhasználók listáját JSON formátumban. A 'to_json' metódus gondoskodik róla, hogy a jelszó ne kerüljön bele.
+    # Return the list of users in JSON format. The 'to_json' method ensures that the password is not included.
     return jsonify([user.to_json() for user in users])
 
 
-# Végpont egy felhasználó lekérdezésére ID alapján.
+# Endpoint to get a user by ID.
 @bp.route("/users/<int:id>", methods=["GET"])
 def get_user(id):
-    # Megkeressük a felhasználót ID alapján.
+    # Find the user by ID.
     user = User.query.get(id)
-    # Ha nem létezik, 404-es hibát adunk.
+    # If it doesn't exist, we return a 404 error.
     if user is None:
         return error_response(404)
-    # Visszaadjuk az adatait JSON-ként.
+    # Return their data as JSON.
     return jsonify(user.to_json())
 
 
-# Végpont új felhasználó létrehozására (regisztráció).
+# Endpoint to create a new user (registration).
 @bp.route("/users", methods=["POST"])
 def create_user():
-    # Lekérjük a JSON adatokat a kérésből.
+    # Get the JSON data from the request.
     data = request.get_json()
-    # Ellenőrizzük, hogy a kötelező 'name' és 'password' mezők meg lettek-e adva.
+    # Check if the required 'name' and 'password' fields have been provided.
     if not data or not data.get('name') or not data.get('password'):
-        return error_response(400, "A 'name' és 'password' mezők kötelezőek.")
+        return error_response(400, "The 'name' and 'password' fields are required.")
 
-    # Ellenőrizzük, hogy a felhasználónév foglalt-e már.
+    # Check if the username is already taken.
     if User.query.filter_by(name=data['name']).first():
-        return error_response(400, "A felhasználónév már foglalt.")
+        return error_response(400, "Username is already taken.")
 
-    # Létrehozunk egy új User objektumot a névvel.
+    # Create a new User object with the name.
     new_user = User(name=data['name'])
-    # A 'set_password' metódus segítségével beállítjuk a hash-elt jelszót.
+    # Set the hashed password using the 'set_password' method.
     new_user.set_password(data['password'])
-    # Hozzáadjuk az új felhasználót az adatbázis-munkamenethez.
+    # Add the new user to the database session.
     db.session.add(new_user)
-    # Véglegesítjük a változtatásokat.
+    # Commit the changes.
     db.session.commit()
 
-    # Létrehozzuk a választ.
+    # Create the response.
     response = jsonify(new_user.to_json())
-    # Beállítjuk a 201 Created státuszkódot.
+    # Set the status code to 201 Created.
     response.status_code = 201
-    # A válasz fejlécébe beletesszük az új felhasználó URL-jét.
+    # Add the URL of the new user to the response header.
     response.headers["Location"] = url_for("api.get_user", id=new_user.id)
     return response
 
 
-# Végpont egy felhasználó adatainak módosítására.
+# Endpoint to update a user's data.
 @bp.route("/users/<int:id>", methods=["PUT"])
-@jwt_required  # Csak bejelentkezett felhasználó érheti el.
+@jwt_required  # Only accessible by a logged-in user.
 def update_user(id):
-    # Lekérdezzük a tokenből a bejelentkezett felhasználó ID-ját.
+    # Get the logged-in user's ID from the token.
     current_user_id = get_jwt_identity()
-    # Ellenőrizzük, hogy a felhasználó a saját adatait próbálja-e módosítani.
+    # Check if the user is trying to modify their own data.
     if id != current_user_id:
-        # Ha nem, 403 Forbidden (Tiltott) hibát adunk.
+        # If not, we return a 403 Forbidden error.
         return error_response(403)
 
-    # Lekérdezzük a módosítandó felhasználót az adatbázisból.
+    # Query the user to be updated from the database.
     user = User.query.get(id)
     if user is None:
         return error_response(404)
 
     data = request.get_json()
     if not data:
-        return error_response(400, "Nincs adat a kérésben.")
+        return error_response(400, "No data in request.")
 
-    # Ha új nevet adtak meg, és az különbözik a régitől, ÉS már foglalt, akkor hibát dobunk.
+    # If a new name is provided, and it's different from the old one, AND it's already taken, we throw an error.
     if 'name' in data and data['name'] != user.name and User.query.filter_by(name=data['name']).first():
-        return error_response(400, "A felhasználónév már foglalt.")
+        return error_response(400, "Username is already taken.")
 
-    # Frissítjük a nevet, ha megadták.
+    # Update the name if provided.
     user.name = data.get('name', user.name)
-    # Frissítjük a jelszót, ha megadták.
+    # Update the password if provided.
     if 'password' in data:
         user.set_password(data['password'])
 
-    # Véglegesítjük a változtatásokat.
+    # Commit the changes.
     db.session.commit()
     return jsonify(user.to_json())
 
 
-# Végpont egy felhasználó törlésére.
+# Endpoint to delete a user.
 @bp.route("/users/<int:id>", methods=["DELETE"])
-@jwt_required  # Csak bejelentkezett felhasználó érheti el.
+@jwt_required  # Only accessible by a logged-in user.
 def delete_user(id):
-    # Lekérdezzük a bejelentkezett felhasználó ID-ját.
+    # Get the logged-in user's ID.
     current_user_id = get_jwt_identity()
-    # Ellenőrizzük, hogy a saját fiókját próbálja-e törölni.
+    # Check if they are trying to delete their own account.
     if id != current_user_id:
         return error_response(403)
 
-    # Lekérdezzük a törlendő felhasználót.
+    # Query the user to be deleted.
     user = User.query.get(id)
     if user is None:
         return error_response(404)
 
-    # Töröljük a felhasználót.
+    # Delete the user.
     db.session.delete(user)
     db.session.commit()
-    # 204 No Content válasszal jelezzük a sikeres törlést.
+    # Indicate successful deletion with a 204 No Content response.
     return "", 204

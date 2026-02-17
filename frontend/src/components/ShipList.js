@@ -11,7 +11,7 @@ const ShipList = () => {
             const response = await api.get('/api/ships');
             setShips(response.data);
         } catch (error) {
-            console.error("Hiba a hajók lekérésekor", error);
+            console.error("Error fetching ships", error);
             if (error.response && error.response.status === 401) {
                 navigate('/login');
             }
@@ -23,20 +23,20 @@ const ShipList = () => {
     }, [fetchShips]);
 
     const handleDelete = async (id) => {
-        if (window.confirm('Biztosan törölni szeretnéd ezt a hajót?')) {
+        if (window.confirm('Are you sure you want to delete this ship?')) {
             try {
                 await api.delete(`/api/ships/${id}`);
                 fetchShips();
             } catch (error) {
-                console.error("Hiba a törléskor", error);
+                console.error("Error deleting ship", error);
             }
         }
     };
 
     return (
         <div className="mt-4">
-            <h2>Hajók Listája</h2>
-            <Link to="/ships/new" className="btn btn-success mb-3">Új Hajó Hozzáadása</Link>
+            <h2>Ship List</h2>
+            <Link to="/ships/new" className="btn btn-success mb-3">Add New Ship</Link>
             <ul className="list-group">
                 {ships.map(ship => (
                     <li key={ship.id} className="list-group-item d-flex justify-content-between align-items-center">
@@ -44,8 +44,8 @@ const ShipList = () => {
                             <strong>{ship.model}</strong> - {ship.ship_class} ({ship.affiliation})
                         </div>
                         <div>
-                            <Link to={`/ships/edit/${ship.id}`} className="btn btn-sm btn-warning me-2">Szerkesztés</Link>
-                            <button onClick={() => handleDelete(ship.id)} className="btn btn-sm btn-danger">Törlés</button>
+                            <Link to={`/ships/edit/${ship.id}`} className="btn btn-sm btn-warning me-2">Edit</Link>
+                            <button onClick={() => handleDelete(ship.id)} className="btn btn-sm btn-danger">Delete</button>
                         </div>
                     </li>
                 ))}

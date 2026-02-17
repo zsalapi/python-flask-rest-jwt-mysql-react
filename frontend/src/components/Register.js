@@ -1,61 +1,61 @@
-// Importáljuk a szükséges React hook-okat és komponenseket.
+// Import necessary React hooks and components.
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api'; // Az axios kliensünk.
+import api from '../api'; // Our axios client.
 
-// A Register komponens.
+// The Register component.
 const Register = () => {
-    // State változók az űrlap adataihoz, valamint a siker- és hibaüzenetekhez.
+    // State variables for form data, as well as success and error messages.
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const navigate = useNavigate();
 
-    // Az űrlap elküldésekor lefutó függvény.
+    // Function that runs when the form is submitted.
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Megakadályozzuk az oldal újratöltődését.
-        // Töröljük a korábbi üzeneteket minden új próbálkozásnál.
+        e.preventDefault(); // Prevent the page from reloading.
+        // Clear previous messages on each new attempt.
         setError('');
         setSuccess('');
         try {
-            // Kérést küldünk a '/api/users' végpontra az új felhasználó adataival.
+            // Send a request to the '/api/users' endpoint with the new user's data.
             await api.post('/api/users', { name, password });
-            // Sikeres regisztráció esetén beállítunk egy sikerüzenetet.
-            setSuccess('Sikeres regisztráció! Most már bejelentkezhetsz.');
-            // Várunk 2 másodpercet, majd átirányítjuk a felhasználót a bejelentkezési oldalra.
+            // On successful registration, set a success message.
+            setSuccess('Registration successful! You can now log in.');
+            // Wait 2 seconds, then redirect the user to the login page.
             setTimeout(() => navigate('/login'), 2000);
         } catch (err) {
-            // Hiba esetén kiolvassuk a backend által küldött hibaüzenetet, ha van.
+            // In case of an error, read the error message sent by the backend, if any.
             if (err.response && err.response.data.error) {
                 setError(err.response.data.error);
             } else {
-                // Ha nincs specifikus hibaüzenet, egy általánosat jelenítünk meg.
-                setError('Hiba történt a regisztráció során.');
+                // If there is no specific error message, display a generic one.
+                setError('An error occurred during registration.');
             }
         }
     };
 
-    // A komponens JSX kódja.
+    // The component's JSX code.
     return (
         <div className="col-md-6 offset-md-3 mt-5">
-            <h2>Regisztráció</h2>
-            {/* Feltételes renderelés a hiba- és sikerüzeneteknek. */}
+            <h2>Register</h2>
+            {/* Conditional rendering for error and success messages. */}
             {error && <div className="alert alert-danger">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
             <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                    <label className="form-label">Felhasználónév</label>
+                    <label className="form-label">Username</label>
                     <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} required />
                 </div>
                 <div className="mb-3">
-                    <label className="form-label">Jelszó</label>
+                    <label className="form-label">Password</label>
                     <input type="password" className="form-control" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
-                <button type="submit" className="btn btn-primary">Regisztráció</button>
+                <button type="submit" className="btn btn-primary">Register</button>
             </form>
             <div className="mt-3">
-                <p>Már van fiókod? <Link to="/login">Jelentkezz be!</Link></p>
+                <p>Already have an account? <Link to="/login">Log in!</Link></p>
             </div>
         </div>
     );

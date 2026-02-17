@@ -20,13 +20,13 @@ const ShipForm = () => {
         try {
             const response = await api.get(`/api/ships/${id}`);
             const data = response.data;
-            // A roles tömböt stringgé alakítjuk a szerkesztéshez
+            // Convert roles array to string for editing
             if (Array.isArray(data.roles)) {
                 data.roles = data.roles.join(', ');
             }
             setShip(data);
         } catch (error) {
-            console.error("Hiba a hajó betöltésekor", error);
+            console.error("Error loading ship", error);
         }
     }, [id]);
 
@@ -43,7 +43,7 @@ const ShipForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const payload = { ...ship };
-        // A roles stringet visszaalakítjuk tömbbé
+        // Convert roles string back to an array
         if (typeof payload.roles === 'string') {
             payload.roles = payload.roles.split(',').map(role => role.trim());
         }
@@ -56,31 +56,31 @@ const ShipForm = () => {
             }
             navigate('/ships');
         } catch (error) {
-            console.error("Hiba a mentéskor", error);
+            console.error("Error saving ship", error);
         }
     };
 
     return (
         <div className="col-md-8 offset-md-2 mt-4">
-            <h2>{id ? 'Hajó Szerkesztése' : 'Új Hajó'}</h2>
+            <h2>{id ? 'Edit Ship' : 'New Ship'}</h2>
             <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                    <label className="form-label">Modell</label>
+                    <label className="form-label">Model</label>
                     <input name="model" className="form-control" value={ship.model} onChange={handleChange} required />
                 </div>
                 <div className="mb-3">
-                    <label className="form-label">Osztály</label>
+                    <label className="form-label">Class</label>
                     <input name="ship_class" className="form-control" value={ship.ship_class} onChange={handleChange} required />
                 </div>
                 <div className="mb-3">
-                    <label className="form-label">Hovatartozás</label>
+                    <label className="form-label">Affiliation</label>
                     <input name="affiliation" className="form-control" value={ship.affiliation} onChange={handleChange} />
                 </div>
                 <div className="mb-3">
-                    <label className="form-label">Szerepkörök (vesszővel elválasztva)</label>
+                    <label className="form-label">Roles (comma-separated)</label>
                     <input name="roles" className="form-control" value={ship.roles} onChange={handleChange} />
                 </div>
-                <button type="submit" className="btn btn-primary">Mentés</button>
+                <button type="submit" className="btn btn-primary">Save</button>
             </form>
         </div>
     );
