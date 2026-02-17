@@ -1,5 +1,5 @@
-A (very) basic Flask REST API example using JWT Authentication with MySQL and React frontend
-The JWT authentication supports access and refresh tokens and token revoking by using an in-memory blacklist.
+A (very) basic Flask REST API example using JWT Authentication with MySQL and React frontend<br>
+The JWT authentication supports access and refresh tokens and token revoking by using an in-memory blacklist.<br>
 I wrote from this repo: https://github.com/Toxe/python-flask-rest-jwt
 <br>
 #---------------------------------------------------------<br>
